@@ -524,6 +524,6 @@ The architecture is designed around a few explicit guarantees:
 
 ---
 
-## 16. Interview-Level Summary
+## 16.Summary
 
 > **The core design choice is intentionally simple:** PostgreSQL is the source of truth for job state, Redis Streams handles durable asynchronous delivery, and workers use consumer groups plus leases for crash recovery. PostgreSQL unique constraints provide producer-side idempotency, while consumer-side idempotency is handled by job-specific safe operations or a dedup table. Retries use exponential backoff with jitter and eventually move to a DLQ. The whole system runs on Docker Compose on a small VPS because the stated portfolio-scale workload does not justify Kubernetes or Kafka. Every major choice has a documented scaling threshold at which it should be revisited.
