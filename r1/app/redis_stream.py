@@ -1,0 +1,34 @@
+import redis.asyncio as redis
+import os
+
+_redis: redis.Redis | None = None
+
+PRIORITY_TIER = {0: "high", 1: "default", 2: "low"}
+
+def stream_name(queue: str, priority: int) -> str:
+    return f"jobs:{queue}:{PRIORITY_TIER.get(priority, 'default')}"
+
+async def init_redis():
+    global _redis
+    _redis = redis.from_url(os.environ["REDIS_URL"], decode_responses=True)
+
+async def close_redis():
+    if _redis:
+        await _redis.aclose()
+
+def get_redis() -> redis.Redis:
+    if _redis is None:
+        raise RuntimeError("Redis not initialized")
+    return _redis
+
+async def push_job(job_id: str, queue: str, priority: int):
+    r = get_redis()
+    stream = stream_name(queue, priority)
+    await r.xadd(stream, {"job_id": job_id})
+
+async def stream_depth(queue: str) -> dict:
+    r = get_redis()
+    depths = {}
+    for tier in PRIORITY_TIER.values():
+        depths[tier] = await r.xlen(f"jobs:{queue}:{tier}")
+    return depths
