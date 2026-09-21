@@ -31,3 +31,18 @@ CREATE TABLE IF NOT EXISTS dead_letter_jobs (
     failure_history  JSONB NOT NULL DEFAULT '[]',
     moved_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS recurring_jobs (
+    id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name             TEXT UNIQUE NOT NULL,
+    queue            TEXT NOT NULL,
+    payload          JSONB NOT NULL,
+    priority         SMALLINT NOT NULL DEFAULT 1,
+    cron_expression  TEXT NOT NULL,
+    next_run_at      TIMESTAMPTZ NOT NULL,
+    last_run_at      TIMESTAMPTZ,
+    enabled          BOOLEAN NOT NULL DEFAULT true,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_recurring_due ON recurring_jobs (enabled, next_run_at);

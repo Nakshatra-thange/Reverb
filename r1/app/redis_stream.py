@@ -32,3 +32,21 @@ async def stream_depth(queue: str) -> dict:
     for tier in PRIORITY_TIER.values():
         depths[tier] = await r.xlen(f"jobs:{queue}:{tier}")
     return depths
+async def ensure_consumer_group(stream: str, group: str):
+    r = get_redis()
+    try:
+        await r.xgroup_create(name=stream, groupname=group, id="0", mkstream=True)
+    except redis.ResponseError as e:
+        if "BUSYGROUP" not in str(e):
+            raise  # group already exists — fine, ignore
+
+async def read_group(stream: str, group: str, consumer: str, count: int = 5, block_ms: int = 2000):
+    r = get_redis()
+    return await r.xreadgroup(
+        groupname=group, consumername=consumer,
+        streams={stream: ">"}, count=count, block=block_ms,
+    )
+
+async def ack(stream: str, group: str, message_id: str):
+    r = get_redis()
+    await r.xack(stream, group, message_id)
